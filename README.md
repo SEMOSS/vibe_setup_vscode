@@ -30,6 +30,34 @@ This workspace contains the local assets for a SEMOSS project (project ID stored
 | `semoss_config/config.json` | Stores project metadata (project ID, `base_url`, `api_module_url`, `web_module_url`, creation timestamp). Keep this committed so collaborators share the same target project. |
 | `gcai.config` | Runtime configuration consumed by `scripts/semoss_asset_sync.py`. At minimum it must contain `PROJECT_ID` and the fully qualified `BASE_URL` (e.g., `<base_url><api_module_url>`). |
 
+## Copilot vs Codex: What To Edit
+
+Use this section as the source of truth for setup edits.
+
+1. **If you are using GitHub Copilot (VS Code MCP)**
+   - Edit `.vscode/mcp.json`:
+     - Replace MCP URL placeholders (`<base_url><api_module_url>`) if still present.
+     - Replace auth placeholder `Authorization:Bearer<accessKey:secretKey>`.
+   - Do not edit `.codex/config.toml` unless you also want Codex CLI support.
+
+2. **If you are using Codex CLI**
+   - Edit `.codex/config.toml`:
+     - Set the same SEMOSS MCP endpoint URLs.
+     - Set `Authorization: Bearer <accessKey:secretKey>`.
+   - Do not edit `.vscode/mcp.json` unless you also want Copilot/VS Code MCP support.
+
+3. **Always shared across both**
+   - Edit `semoss_config/config.json` (or create from `semoss_config/config.json.example`):
+     - `project_id`, `base_url`, `api_module_url`, `web_module_url`
+   - Edit `gcai.config` (or create from `gcai.config.example`):
+     - `PROJECT_ID`
+     - `BASE_URL` (full Monolith URL, e.g. `https://.../Monolith`)
+
+4. **Rule of thumb**
+   - Copilot issue -> check `.vscode/mcp.json`
+   - Codex issue -> check `.codex/config.toml`
+   - Sync/upload issue -> check `gcai.config`, `semoss_config/config.json`, and `scripts/semoss_asset_sync.py`
+
 ## Codex Compatibility Notes
 
 1. **Instruction source**

@@ -55,3 +55,28 @@ Remember everything you are building is on SEMOSS so start by getting familiar w
 As a starting point list the tools from the MCPs so the users are aware of them. 
 
 ALWAYS be concise, dont create monstrous code which is impossible to review.
+
+## Agent-specific setup boundaries
+
+- For Copilot setup tasks, edit `.vscode/mcp.json`.
+- For Codex setup tasks, edit `.codex/config.toml`.
+- For shared SEMOSS setup, edit `semoss_config/config.json` and `gcai.config`.
+- On "initialize" requests, inspect and report first, then ask before creating or editing config files.
+- Do not edit `.vscode/mcp.json` during Codex initialization unless the user explicitly asks.
+
+## First-message / initialize behavior
+
+On any first user message in a project, or when user says "initialize", "start", or "startup":
+1. Check setup status first (do not edit yet):
+   - `semoss_config/config.json` (or `.example`)
+   - `gcai.config` (or `.example`)
+   - `.vscode/mcp.json` for Copilot path
+   - `.codex/config.toml` for Codex path
+2. Report what is already configured vs missing.
+3. Prompt user for missing required values before proceeding. Typical required values:
+   - `project_id`
+   - `base_url`
+   - `api_module_url`
+   - `web_module_url`
+   - `accessKey` and `secretKey`
+4. Only after user confirmation, write/update the minimum required files.
