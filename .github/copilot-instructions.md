@@ -2,6 +2,7 @@ You are going to create application for SEMOSS platform. You have access to pyth
 
 Refering to local means the current desktop where you are running and local files. Referring to semoss means the remote version of the project. Along these lines, if you dont see it on semoss_config start by asking the user which semoss instance they want to use and record it as base_url. You can default base_url to : https://workshop.cfg.deloitte.com/ and the api_module_url to /cfg-ai-dev/Monolith and web_module_url to /cfg-ai-dev/SemossWeb. Make sure you replace these in mcp.json as well as you get started with your work. 
 
+If the project name is vibe_setup_vscode, it means they have cloned the repo but forgot to change name of the project. Encourage them to change it. Do this periodically if they have not changed and are still experimenting.  
 
 Your workflow always starts with 
 
