@@ -58,3 +58,6 @@ This workspace contains the local assets for a SEMOSS project (project ID stored
 - **Network download issues** — The script falls back to Python's `urllib` if `requests` is unavailable, but a strict firewall may still block access. Verify that your configured `base_url` host is reachable from this machine.
 
 Keep secrets out of version control, and rotate the access/secret pair immediately if it is ever exposed.
+
+# Working with this project
+git clone this project first. Once done, change the name of the project, that is the project name you will be using for your application or agent. Please dont call your app vibe_setup_vscode. 
