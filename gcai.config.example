@@ -1,0 +1,3 @@
+# Copy this file to gcai.config and replace placeholder values.
+PROJECT_ID=<project_id>
+BASE_URL=https://workshop.cfg.deloitte.com/cfg-ai-dev/Monolith

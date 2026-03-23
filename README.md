@@ -1,5 +1,7 @@
 # SEMOSS Vibe Engineering Setup & Sync Guide
 
+This repo now supports both GitHub Copilot and Codex agent workflows.
+
 This workspace contains the local assets for a SEMOSS project (project ID stored in [semoss_config/config.json](semoss_config/config.json)). The "Vibe Engineering" setup described below prepares your environment, keeps credentials in sync, and pushes assets back to SEMOSS. All host-specific values (`base_url`, `api_module_url`, `web_module_url`) live in `semoss_config/config.json` so the guide stays environment agnostic.
 
 ## Prerequisites
@@ -20,8 +22,28 @@ This workspace contains the local assets for a SEMOSS project (project ID stored
 | File | Purpose |
 | --- | --- |
 | `.vscode/mcp.json` | Wires VS Code MCP to the SEMOSS remote tools. Update the `Authorization:Bearer...` header whenever keys rotate. |
+| `.codex/config.toml` | Codex MCP server configuration mirroring `.vscode/mcp.json` for this project. |
+| `AGENTS.md` | Codex-specific workspace instructions (startup flow, SEMOSS sync behavior, and URL patterns). |
+| `.github/copilot-instructions.md` | Copilot-specific instructions for the same workspace. |
+| `semoss_config/config.json.example` | Starter project metadata template for first-time setup. |
+| `gcai.config.example` | Starter runtime config template consumed by the sync script. |
 | `semoss_config/config.json` | Stores project metadata (project ID, `base_url`, `api_module_url`, `web_module_url`, creation timestamp). Keep this committed so collaborators share the same target project. |
 | `gcai.config` | Runtime configuration consumed by `scripts/semoss_asset_sync.py`. At minimum it must contain `PROJECT_ID` and the fully qualified `BASE_URL` (e.g., `<base_url><api_module_url>`). |
+
+## Codex Compatibility Notes
+
+1. **Instruction source**
+   - Copilot reads `.github/copilot-instructions.md`.
+   - Codex reads `AGENTS.md`.
+2. **MCP config**
+   - `.vscode/mcp.json` remains the shared MCP configuration for this project.
+   - `.codex/config.toml` mirrors those SEMOSS MCP endpoints for Codex usage.
+   - Replace all placeholders (`<base_url>`, `<api_module_url>`, `<accessKey:secretKey>`) before running remote operations.
+3. **Sync behavior**
+   - Use `scripts/semoss_asset_sync.py` for upload/sync operations in both Copilot and Codex workflows.
+4. **First-time bootstrap**
+   - Create `semoss_config/config.json` from `semoss_config/config.json.example`.
+   - Create `gcai.config` from `gcai.config.example`.
 
 ## Workflow
 

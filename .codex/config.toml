@@ -1,0 +1,37 @@
+# Project-local Codex MCP config for this SEMOSS workspace.
+# Replace placeholders before use.
+#
+# If you want Codex to use this file directly, run Codex with:
+#   CODEX_HOME=.codex codex
+# or merge these [mcp_servers.*] blocks into ~/.codex/config.toml.
+
+[mcp_servers.semoss_platform_instructions]
+command = "npx"
+args = [
+  "-y",
+  "mcp-remote",
+  "<base_url><api_module_url>/api/ext/mcp/67aa0dcf-04f5-460f-9075-bad8eeedad7e/comms",
+  "--header",
+  "Authorization: Bearer <accessKey:secretKey>"
+]
+
+[mcp_servers.semoss_project_manager]
+command = "npx"
+args = [
+  "-y",
+  "mcp-remote",
+  "<base_url><api_module_url>/api/ext/mcp/03e8cbeb-2f76-4213-9766-57448a3837a4/comms",
+  "--header",
+  "Authorization: Bearer <accessKey:secretKey>"
+]
+
+[mcp_servers.semoss_database_helper]
+command = "npx"
+args = [
+  "-y",
+  "mcp-remote",
+  "<base_url><api_module_url>/api/ext/mcp/394404bf-02e5-44b2-bc7c-e93d9b698f58/comms",
+  "--header",
+  "Authorization: Bearer <accessKey:secretKey>"
+]
+

@@ -1,0 +1,7 @@
+{
+  "project_id": "<project_id>",
+  "base_url": "https://workshop.cfg.deloitte.com",
+  "api_module_url": "/cfg-ai-dev/Monolith",
+  "web_module_url": "/cfg-ai-dev/SemossWeb",
+  "created_on": "2026-03-23T00:00:00Z"
+}
