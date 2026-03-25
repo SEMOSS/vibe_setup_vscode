@@ -1,58 +1,66 @@
-You are going to create application for SEMOSS platform. You have access to python. So for operations such as converting to base 64 from and to, make use of python. 
+You are creating applications for the SEMOSS platform. Use Python only for simple local operations such as base64 conversion. Local means this desktop workspace. SEMOSS means the remote project/app.
 
-Refering to local means the current desktop where you are running and local files. Referring to semoss means the remote version of the project. Along these lines, if you dont see it on semoss_config start by asking the user which semoss instance they want to use and record it as base_url. You can default base_url to : https://workshop.cfg.deloitte.com/ and the api_module_url to /cfg-ai-dev/Monolith and web_module_url to /cfg-ai-dev/SemossWeb. Make sure you replace these in mcp.json as well as you get started with your work. 
+If `semoss_config` is missing, first ask which SEMOSS instance to use and record `base_url`. Default values are:
+- `base_url`: `https://workshop.cfg.deloitte.com/`
+- `api_module_url`: `/cfg-ai-dev/Monolith`
+- `web_module_url`: `/cfg-ai-dev/SemossWeb`
 
-This project is a template project, so let us first start by filling in the missing details. For instance the files have placeholders for access key, secret key etc. Let us start by collecting this information from the user. Before starting up the MCP note that the MCPs have placeholder for accessKey and SecretKey, you need to ask the user for it and put it in appropriate places to get started. If the access key secret key is already there just confirm it is there. 
+Replace these values in `.vscode/mcp.json` when you start. If the access key and secret key placeholders are still present, ask the user for them and update the MCP config before doing anything else. Once the keys are set or changed, tell the user to reload VS Code by using `Developer: Reload Window` so MCP reconnects with the new credentials. If they are already present, confirm that and continue.
 
-If the project name is vibe_setup_vscode, it means they have cloned the repo but forgot to change name of the project. Encourage them to change it. Do this periodically if they have not changed and are still experimenting.  
+If the project name is `vibe_setup_vscode`, remind the user to rename it. Keep that reminder short and occasional.
 
-Your workflow always starts with 
+Your workflow always starts with:
 
-a. Checking to see if the folder is connected to a project in the SEMOSS platform. You can do so by checking to see if there is a semoss_config file available. 
-b. If there is no file there, offer to create a project and then persist the following details project id, the base url. If you are using the basic govconnect instance, you can default this to /cfg-ai-dev/Monolith. Once the information is available save this in semoss_config with the following details. 
-- Project ID / APP ID
-- Module 
-- Created On 
-Make this as a json so you can add additional details as needed. Once the project is created, persist this in the config directory of the remote project you just created. 
+a. Check whether the folder is already linked to SEMOSS by looking for `semoss_config`.
+b. If it is not linked, ask whether to create a new SEMOSS project or link an existing one.
+c. When creating a new project, also ask: "Do you want this app to be an MCP?"
+d. If the user says yes, pass that value into the `mcp` argument of the create-project tool and store that flag in `semoss_config/config.json`.
+e. Save `semoss_config/config.json` as JSON with at least: project/app id, module, created_on, base_url, api_module_url, web_module_url, and `is_mcp`.
+f. Persist that config into the remote project's config directory as well.
 
-c. When saving files, always use the ai_server_sdk to perform this job. Here is the code snippet for you 
-from ai_server import ModelEngine, ServerClient
-access = "this is the first part of bearer token in mcp.json header authorization"
-secret = "this is the second part of bearer token in mcp.json header authorization"
-endpoint = 'https://workshop.cfg.deloitte.com/cfg-ai-dev/Monolith/api/'
-# Create the server connection 
-server_connection = ServerClient(base=endpoint, access_key=access, secret_key=secret)
-# Create a new insight 
+When saving files, always use the `ai_server` SDK or the helper in `scripts/semoss_asset_sync.py`.
+
+```python
+from ai_server import ServerClient
+
+server_connection = ServerClient(base='https://workshop.cfg.deloitte.com/cfg-ai-dev/Monolith/api/', access_key=access, secret_key=secret)
 insight_id = server_connection.make_new_insight()
-# Upload the local file
-server_connection.upload_files(files=[path to local file 1, path to local file 2], project_id="<Project ID from semoss config>", insight_id=f"{insight_id}", path="/version/assets/<appropriate folder>")
-First test to see if a file exists. If it does, prompt the user that you will delete it, once user confirms, delete the file. After this you have to publish the project otherwise it wont take effect. Then list the files to make sure it is not there and then upload with this new version. 
-# Download remote file i.e. from semoss 
-server_connection.download_file(file=["path_to_insight_file"], project_id="your_project_id", insight_id="your_insight_id",custom_filename="filename_for_download")
-These methods are also available in scripts/semoss_asset_sync.py
- 
- 
-d. If there are databases involved or need to be created, use the following app to tell the user to create the database and provide you with the dtabase id. Once provided use the get_schema (database_id) to get the schema. Please remember that you are getting a base64 encoded schema which needs to be decoded for use. Once you get the schema. Also write the schema into semoss_config. You can use the following python code to convert the file to base 64. 
-import base64; from pathlib import Path; p=Path('portals/index.html'); Path('temp_portals_index_html.b64').write_text(base64.b64encode(p.read_bytes()).decode('utf-8'))
-Create Base 64 of the files in the temp directory with the same structure so you are not confused. After it has been pushed, you can delete the file. 
+server_connection.upload_files(files=[local_file], project_id=project_id, insight_id=f"{insight_id}", path="/version/assets/<folder>")
+server_connection.run_pixel('1+1')
+```
 
-e. Everytime you make modifications, give the option to the user to synchronize the file i.e. from local to remote and offer to publish the URL 
-f. The projects all follow this URL pattern - <base_url><web_module_url>/packages/client/dist/#/app/<project ID/ App ID>/view. Please remember this and offer the user to see the website if they want to. 
-g. If the user wants to creates a database, offer to create it through the database maker application which is located at URL : <base_url><web_module_url>/packages/client/dist/#/app/394404bf-02e5-44b2-bc7c-e93d9b698f58/view
-h. If the user wants to access an existing database with a specific id offer to take them to the URL : <base_url><web_module_url>/packages/client/dist/#/engine/database/<database id>
-h. If the user is trying to give you a task and it is a complex task, show them a list of things like a task list you will do and ask them to confirm before proceeding. 
-i. Do not put write file, put file etc calls into the context ever. It is a waste of context space. 
+Before upload, check whether the remote file already exists. If it does, ask the user before deleting it. After delete and after upload, publish the project. Then list files so the result is visible.
 
+If databases are involved, direct the user to create the database first and provide the database id. Then get the schema, decode the base64 payload, and store the schema in `semoss_config`. Use Python for base64 conversion when needed.
 
-Please only use the specified MCPs and nothing more. Please make sure you are not trying alternative paths. You should NEVER EVER install any new library therefore, no need to create a python virtual environment. You can run python commands for simple things, but dont do anything dangerous. 
+UI guidance:
+- Unless the user says otherwise, build the UI as a single page HTML app.
+- If the app is marked as MCP, do not stop at the HTML UI. Also identify which tools and reusable skills should be exposed through MCP.
+- Present that MCP tool/skill list to the user and ask for confirmation before implementing it.
+- After confirmation, create `py/mcp_driver.py` with the approved MCP functions using the SEMOSS MCP conventions.
+- Wire the approved MCP-backed actions into `portals/index.html` in the relevant places.
 
-You can run Python, but dont use Pylance. I dont need to run un-necessary mcps. 
+MCP-specific behavior:
+- The MCP python driver lives at `py/mcp_driver.py` locally and becomes `version/assets/py/mcp_driver.py` remotely.
+- Use the SEMOSS MCP conventions and annotations for functions exposed from `mcp_driver.py`.
+- When syncing an MCP project and `py/mcp_driver.py` exists, also run the `MakePythonMCP` reactor with the project id so SEMOSS generates `py_mcp.json`.
+- Keep this logic inside `scripts/semoss_asset_sync.py` so the template stays reusable.
 
-The UI is always built as single page html unless otherwise specified. Please make sure you are making this in the appropriate directories and directory structure.
+Every time you make modifications, offer to synchronize local changes to SEMOSS and offer the app URL:
+`<base_url><web_module_url>/packages/client/dist/#/app/<project_id>/view`
 
+If the user wants to create a database, offer:
+`<base_url><web_module_url>/packages/client/dist/#/app/394404bf-02e5-44b2-bc7c-e93d9b698f58/view`
 
-Remember everything you are building is on SEMOSS so start by getting familiar with the instructions. 
+If the user wants to open an existing database, offer:
+`<base_url><web_module_url>/packages/client/dist/#/engine/database/<database_id>`
 
-As a starting point list the tools from the MCPs so the users are aware of them. 
+If the task is complex, show a short task list and ask the user to confirm before proceeding.
 
-ALWAYS be concise, dont create monstrous code which is impossible to review.
+Do not put write-file style calls into context. It wastes context.
+
+Use only the specified MCPs. Do not install new libraries. Do not create a virtual environment. You can run simple Python commands, but do not use Pylance and do not use unnecessary MCPs.
+
+As a starting point, list the available MCP tools so the user knows what is available.
+
+Be concise. Keep code and instructions reviewable.

@@ -18,10 +18,12 @@ from urllib.request import Request, urlopen
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 MCP_CONFIG_PATH = WORKSPACE_ROOT / ".vscode" / "mcp.json"
 GCAI_CONFIG_PATH = WORKSPACE_ROOT / "gcai.config"
+SEMOSS_CONFIG_PATH = WORKSPACE_ROOT / "semoss_config" / "config.json"
 DEFAULT_HOST = "https://workshop.cfg.deloitte.com"
 DEFAULT_BASE_URL = "/cfg-ai-dev/Monolith"
 SERVER_NAME = "Semoss_project_manager"
 BACKUP_ROOT = WORKSPACE_ROOT / "temp" / "semoss_backups"
+MCP_DRIVER_PATH = WORKSPACE_ROOT / "py" / "mcp_driver.py"
 
 
 def load_gcai_config(config_path: Path) -> dict[str, str]:
@@ -41,6 +43,20 @@ def load_gcai_config(config_path: Path) -> dict[str, str]:
         key, value = stripped.split("=", 1)
         values[key.strip()] = value.strip()
     return values
+
+
+def load_semoss_config(config_path: Path) -> dict[str, object]:
+    if not config_path.exists():
+        return {}
+
+    raw_text = config_path.read_text(encoding="utf-8").strip()
+    if not raw_text:
+        return {}
+
+    data = json.loads(raw_text)
+    if not isinstance(data, dict):
+        raise RuntimeError("semoss_config/config.json must contain a JSON object.")
+    return data
 
 
 def load_bearer_parts(mcp_config_path: Path) -> tuple[str, str]:
@@ -68,8 +84,17 @@ def load_bearer_parts(mcp_config_path: Path) -> tuple[str, str]:
     return access_token, secret
 
 
-def build_api_endpoint(gcai_config: dict[str, str]) -> str:
-    base_url = gcai_config.get("BASE_URL", DEFAULT_BASE_URL).strip()
+def build_api_endpoint(gcai_config: dict[str, str], semoss_config: dict[str, object]) -> str:
+    base_url = gcai_config.get("BASE_URL", "").strip()
+    if not base_url:
+        semoss_base_url = str(semoss_config.get("base_url", "")).strip()
+        api_module_url = str(semoss_config.get("api_module_url", "")).strip()
+        if semoss_base_url:
+            if api_module_url:
+                base_url = f"{semoss_base_url.rstrip('/')}/{api_module_url.strip('/')}"
+            else:
+                base_url = semoss_base_url
+
     if not base_url:
         base_url = DEFAULT_BASE_URL
 
@@ -90,6 +115,44 @@ def build_server_connection(endpoint: str, access_token: str, secret: str):
         ) from exc
 
     return ServerClient(base=endpoint, access_key=access_token, secret_key=secret)
+
+
+def parse_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def get_project_id(gcai_config: dict[str, str], semoss_config: dict[str, object]) -> str:
+    candidate_values = [
+        gcai_config.get("PROJECT_ID"),
+        gcai_config.get("APP_ID"),
+        semoss_config.get("project_id"),
+        semoss_config.get("app_id"),
+        semoss_config.get("projectId"),
+        semoss_config.get("appId"),
+    ]
+
+    for value in candidate_values:
+        if value:
+            return str(value)
+    return ""
+
+
+def is_mcp_project(gcai_config: dict[str, str], semoss_config: dict[str, object]) -> bool:
+    candidate_values = [
+        gcai_config.get("IS_MCP"),
+        gcai_config.get("PROJECT_IS_MCP"),
+        semoss_config.get("is_mcp"),
+        semoss_config.get("mcp"),
+    ]
+    return any(parse_bool(value) for value in candidate_values)
+
+
+def should_generate_python_mcp(gcai_config: dict[str, str], semoss_config: dict[str, object]) -> bool:
+    return is_mcp_project(gcai_config, semoss_config) and MCP_DRIVER_PATH.exists()
 
 
 def normalize_remote_asset_path(remote_path: str) -> str:
@@ -177,6 +240,11 @@ def delete_remote_asset(server_connection, project_id: str, remote_file_path: st
 
 def publish_project(server_connection, project_id: str) -> object:
     pixel = f"PublishProject(project='{project_id}', release=true);"
+    return run_project_pixel(server_connection, pixel)
+
+
+def make_python_mcp(server_connection, project_id: str) -> object:
+    pixel = f"MakePythonMCP({json.dumps(project_id)});"
     return run_project_pixel(server_connection, pixel)
 
 
@@ -373,23 +441,30 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args(raw_args)
 
 
-def build_semoss_context() -> tuple[dict[str, str], str, object]:
+def build_semoss_context() -> tuple[dict[str, str], dict[str, object], str, object]:
     gcai_config = load_gcai_config(GCAI_CONFIG_PATH)
+    semoss_config = load_semoss_config(SEMOSS_CONFIG_PATH)
     access_token, secret = load_bearer_parts(MCP_CONFIG_PATH)
 
-    project_id = gcai_config.get("PROJECT_ID")
+    project_id = get_project_id(gcai_config, semoss_config)
     if not project_id:
-        raise SystemExit("PROJECT_ID was not found in gcai.config.")
+        raise SystemExit("PROJECT_ID was not found in gcai.config or semoss_config/config.json.")
 
     server_connection = build_server_connection(
-        endpoint=build_api_endpoint(gcai_config),
+        endpoint=build_api_endpoint(gcai_config, semoss_config),
         access_token=access_token,
         secret=secret,
     )
-    return gcai_config, project_id, server_connection
+    return gcai_config, semoss_config, project_id, server_connection
 
 
-def upload_local_file_to_semoss(local_file: Path, project_id: str, server_connection) -> int:
+def upload_local_file_to_semoss(
+    local_file: Path,
+    project_id: str,
+    server_connection,
+    gcai_config: dict[str, str],
+    semoss_config: dict[str, object],
+) -> int:
     if not local_file.exists() or not local_file.is_file():
         raise SystemExit(f"Local file not found: {local_file}")
     if WORKSPACE_ROOT not in local_file.parents and local_file != WORKSPACE_ROOT:
@@ -431,6 +506,12 @@ def upload_local_file_to_semoss(local_file: Path, project_id: str, server_connec
         path=remote_directory,
     )
 
+    python_mcp_result = None
+    mcp_listing: list[dict[str, object]] = []
+    if should_generate_python_mcp(gcai_config, semoss_config):
+        python_mcp_result = make_python_mcp(server_connection, project_id)
+        mcp_listing = browse_remote_directory(server_connection, project_id, "version/assets/mcp")
+
     publish_result = publish_project(server_connection, project_id)
     final_listing = browse_remote_directory(server_connection, project_id, remote_directory)
 
@@ -440,6 +521,10 @@ def upload_local_file_to_semoss(local_file: Path, project_id: str, server_connec
     print(f"Remote directory: {remote_directory}")
     print(f"Remote asset: {remote_file_path}")
     print(json.dumps(upload_result, indent=2, default=str))
+    if python_mcp_result is not None:
+        print("Generated SEMOSS Python MCP manifest")
+        print(json.dumps(python_mcp_result, indent=2, default=str))
+        print_directory_state("Remote MCP directory after generation:", mcp_listing)
     print("Published project after upload")
     print(json.dumps(publish_result, indent=2, default=str))
     print_directory_state("Remote directory after upload:", final_listing)
@@ -447,7 +532,7 @@ def upload_local_file_to_semoss(local_file: Path, project_id: str, server_connec
 
 
 def sync_semoss_folder_to_local(remote_folder: str, local_dir: str | None, overwrite: bool) -> int:
-    _, project_id, server_connection = build_semoss_context()
+    _, _, project_id, server_connection = build_semoss_context()
     normalized_remote_path = normalize_remote_asset_path(remote_folder)
     target_local_dir = Path(local_dir).expanduser().resolve() if local_dir else default_local_path_for_remote(normalized_remote_path)
 
@@ -471,9 +556,9 @@ def main() -> int:
     if args.command == "sync-from-remote":
         return sync_semoss_folder_to_local(args.remote_folder, args.local_dir, args.overwrite)
 
-    _, project_id, server_connection = build_semoss_context()
+    gcai_config, semoss_config, project_id, server_connection = build_semoss_context()
     local_file = Path(args.file).expanduser().resolve()
-    return upload_local_file_to_semoss(local_file, project_id, server_connection)
+    return upload_local_file_to_semoss(local_file, project_id, server_connection, gcai_config, semoss_config)
 
 
 if __name__ == "__main__":
