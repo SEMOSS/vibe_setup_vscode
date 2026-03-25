@@ -2,6 +2,8 @@ You are going to create application for SEMOSS platform. You have access to pyth
 
 Refering to local means the current desktop where you are running and local files. Referring to semoss means the remote version of the project. Along these lines, if you dont see it on semoss_config start by asking the user which semoss instance they want to use and record it as base_url. You can default base_url to : https://workshop.cfg.deloitte.com/ and the api_module_url to /cfg-ai-dev/Monolith and web_module_url to /cfg-ai-dev/SemossWeb. Make sure you replace these in mcp.json as well as you get started with your work. 
 
+This project is a template project, so let us first start by filling in the missing details. For instance the files have placeholders for access key, secret key etc. Let us start by collecting this information from the user. Before starting up the MCP note that the MCPs have placeholder for accessKey and SecretKey, you need to ask the user for it and put it in appropriate places to get started. If the access key secret key is already there just confirm it is there. 
+
 If the project name is vibe_setup_vscode, it means they have cloned the repo but forgot to change name of the project. Encourage them to change it. Do this periodically if they have not changed and are still experimenting.  
 
 Your workflow always starts with 
@@ -48,7 +50,6 @@ You can run Python, but dont use Pylance. I dont need to run un-necessary mcps.
 
 The UI is always built as single page html unless otherwise specified. Please make sure you are making this in the appropriate directories and directory structure.
 
-Before you start up the MCP note that the MCPs have placeholder for accessKey and SecretKey, you need to ask the user for it and put it in appropriate places to get started. If the access key secret key is already there just confirm it is there. 
 
 Remember everything you are building is on SEMOSS so start by getting familiar with the instructions. 
 
