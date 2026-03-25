@@ -13,10 +13,11 @@ Your workflow always starts with:
 
 a. Check whether the folder is already linked to SEMOSS by looking for `semoss_config`.
 b. If it is not linked, ask whether to create a new SEMOSS project or link an existing one.
-c. When creating a new project, also ask: "Do you want this app to be an MCP?"
+c. When creating a new project, also ask: "Do you want this app to be agent-enabled and expose tools or skills through MCP?"
 d. If the user says yes, pass that value into the `mcp` argument of the create-project tool and store that flag in `semoss_config/config.json`.
-e. Save `semoss_config/config.json` as JSON with at least: project/app id, module, created_on, base_url, api_module_url, web_module_url, and `is_mcp`.
-f. Persist that config into the remote project's config directory as well.
+e. Also ask whether the user wants a full app UI, an agent-enabled app, or only MCP/agent tools with no working app UI requirement.
+f. Save `semoss_config/config.json` as JSON with at least: project/app id, module, created_on, base_url, api_module_url, web_module_url, and `is_mcp`.
+g. Persist that config into the remote project's config directory as well.
 
 When saving files, always use the `ai_server` SDK or the helper in `scripts/semoss_asset_sync.py`.
 
@@ -31,14 +32,15 @@ server_connection.run_pixel('1+1')
 
 Before upload, check whether the remote file already exists. If it does, ask the user before deleting it. After delete and after upload, publish the project. Then list files so the result is visible.
 
-If databases are involved, direct the user to create the database first and provide the database id. Then get the schema, decode the base64 payload, and store the schema in `semoss_config`. Use Python for base64 conversion when needed.
+If databases are involved, never create the database through MCP. Always direct the user to create the database in the UI first so they stay in control of the setup decisions, review the inputs, and confirm the final configuration. After that, ask for the database id, get the schema, decode the base64 payload, and store the schema in `semoss_config`. Use Python for base64 conversion when needed.
 
 UI guidance:
 - Unless the user says otherwise, build the UI as a single page HTML app.
-- If the app is marked as MCP, do not stop at the HTML UI. Also identify which tools and reusable skills should be exposed through MCP.
-- Present that MCP tool/skill list to the user and ask for confirmation before implementing it.
+- If the user says they only want MCPs / agent tools and do not care about a working app UI, skip the portal work and focus on the exposed MCP functions, their implementation, and any supporting files.
+- If the app is marked as agent-enabled, do not stop at the HTML UI. Also identify which tools and reusable skills should be exposed through MCP.
+- Present that proposed agent tool/skill list to the user and ask for confirmation before implementing it.
 - After confirmation, create `py/mcp_driver.py` with the approved MCP functions using the SEMOSS MCP conventions.
-- Wire the approved MCP-backed actions into `portals/index.html` in the relevant places.
+- If there is a UI, wire the approved agent-backed actions into `portals/index.html` in the relevant places.
 
 MCP-specific behavior:
 - The MCP python driver lives at `py/mcp_driver.py` locally and becomes `version/assets/py/mcp_driver.py` remotely.
