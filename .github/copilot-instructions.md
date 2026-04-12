@@ -16,9 +16,10 @@ b. If it is not linked, ask whether to create a new SEMOSS project or link an ex
 c. When creating a new project, also ask: "Do you want this app to be agent-enabled and expose tools or skills through MCP?"
 d. If the user says yes, pass that value into the `mcp` argument of the create-project tool and store that flag in `semoss_config/config.json`.
 e. Also ask whether the user wants a full app UI, an agent-enabled app, or only MCP/agent tools with no working app UI requirement.
-f. Save `semoss_config/config.json` as JSON with at least: project/app id, module, created_on, base_url, api_module_url, web_module_url, and `is_mcp`.
-g. Persist that config into the remote project's config directory as well.
-
+If the app will expose MCP functions, ask for each function whether its execution mode is `auto` or `ask`.
+g. If any function is `ask`, plan for the human-in-the-loop Playground flow and required UI wiring before implementation.
+h. Save `semoss_config/config.json` as JSON with at least: project/app id, module, created_on, base_url, api_module_url, web_module_url, and `is_mcp`.
+i. Persist that config into the remote project's config directory as well.
 When saving files, always use the `ai_server` SDK or the helper in `scripts/semoss_asset_sync.py`.
 
 ```python
@@ -45,6 +46,17 @@ UI guidance:
 MCP-specific behavior:
 - The MCP python driver lives at `py/mcp_driver.py` locally and becomes `version/assets/py/mcp_driver.py` remotely.
 - Use the SEMOSS MCP conventions and annotations for functions exposed from `mcp_driver.py`.
+- - There are two MCP execution modes controlled by `SMSS_MCP_Execution`: `auto` and `ask`.
+- When creating or updating MCP functions, ask the user for the execution mode of each function unless it can be inferred from an existing MCP config.
+- If `mcp/mcp.json` exists in the local project assets, or `/version/assets/mcp/mcp.json` exists remotely, inspect it and use it to infer existing `SMSS_MCP_Execution` values before asking follow-up questions.
+- If even one MCP function is `ask`, follow the human-in-the-loop Playground pattern for the relevant flow instead of treating the app as pure auto-execution MCP.
+- For `ask` functions, mark the metadata with `SMSS_MCP_Execution: ask` and assume the behavior is specific to the Playground MCP client.
+- Treat `ask` as the general UI-involved execution pattern. If a flow requires rendering UI, collecting human input, showing tools in the UI, or waiting for a user-driven completion step, it should follow the `ask` pattern.
+- In `ask` mode, the Playground client will render and invoke the UI with tools, then the tool logic may continue through direct Python execution or by assimilating user-entered input from the UI.
+- For UI-backed `ask` flows, design the UI around the same lifecycle each time: Playground opens the UI with the relevant tools, the user reviews or enters data, the tool continues through direct Python execution or UI-assisted data collection, and the frontend signals completion back to Playground.
+- When an `ask` flow is complete, notify Playground of completion by calling `runMCP()` on the frontend with a simple echo-style function that returns the provided payload. The important part is that completion is signaled through `runMCP()`, not just by returning from local UI code.
+- If there is any `ask` function, wire the required UI and completion handling into `portals/index.html` and keep the MCP function implementation aligned with that UI flow.
+- If the user says `mcp` or asks to configure MCP behavior, treat that as a cue to review or set the per-function execution mode and the related `SMSS_MCP_Execution` metadata.
 - When syncing an MCP project and `py/mcp_driver.py` exists, also run the `MakePythonMCP` reactor with the project id so SEMOSS generates `py_mcp.json`.
 - Keep this logic inside `scripts/semoss_asset_sync.py` so the template stays reusable.
 
