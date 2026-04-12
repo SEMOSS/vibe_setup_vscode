@@ -5,7 +5,15 @@ If `semoss_config` is missing, first ask which SEMOSS instance to use and record
 - `api_module_url`: `/cfg-ai-dev/Monolith`
 - `web_module_url`: `/cfg-ai-dev/SemossWeb`
 
-Replace these values in `.vscode/mcp.json` when you start. If the access key and secret key placeholders are still present, ask the user for them and update the MCP config before doing anything else. Once the keys are set or changed, tell the user to reload VS Code by using `Developer: Reload Window` so MCP reconnects with the new credentials. If they are already present, confirm that and continue.
+Do not hand-edit `.vscode/mcp.json` or `semoss_config/config.json` in chat. Once you know the SEMOSS host/module values and have the access key and secret key, run the local helper instead:
+
+```powershell
+py -3.13 scripts/semoss_asset_sync.py configure-local --access-key <access_key> --secret-key <secret_key> --base-url <base_url> --api-module-url <api_module_url> --web-module-url <web_module_url> --project-id <project_id>
+```
+
+Add `--is-mcp` when the app is MCP-enabled, or `--is-not-mcp` when it is not. Use `--module <value>` only when the module should differ from the existing value or the default `app`.
+
+If the access key and secret key placeholders are still present, ask the user for them and run the helper before doing anything else. Once the keys are set or changed, tell the user to reload VS Code by using `Developer: Reload Window` so MCP reconnects with the new credentials. If they are already present, confirm that and continue.
 
 If the project name is `vibe_setup_vscode`, remind the user to rename it. Keep that reminder short and occasional.
 
@@ -20,7 +28,7 @@ If the app will expose MCP functions, ask for each function whether its executio
 g. If any function is `ask`, plan for the human-in-the-loop Playground flow and required UI wiring before implementation.
 h. Save `semoss_config/config.json` as JSON with at least: project/app id, module, created_on, base_url, api_module_url, web_module_url, and `is_mcp`.
 i. Persist that config into the remote project's config directory as well.
-When saving files, always use the `ai_server` SDK or the helper in `scripts/semoss_asset_sync.py`.
+For local config bootstrap, prefer `py -3.13 scripts/semoss_asset_sync.py configure-local ...` so the file updates happen through Python instead of token-heavy manual edits. When saving files to SEMOSS, always use the `ai_server` SDK or the helper in `scripts/semoss_asset_sync.py`.
 
 ```python
 from ai_server import ServerClient

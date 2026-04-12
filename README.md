@@ -19,19 +19,20 @@ This workspace contains the local assets for a SEMOSS project (project ID stored
 
 | File | Purpose |
 | --- | --- |
-| `.vscode/mcp.json` | Wires VS Code MCP to the SEMOSS remote tools. Update the `Authorization:Bearer...` header whenever keys rotate. |
+| `.vscode/mcp.json` | Wires VS Code MCP to the SEMOSS remote tools. Update it through `scripts/semoss_asset_sync.py configure-local` whenever keys rotate. |
 | `semoss_config/config.json` | Stores project metadata (project ID, `base_url`, `api_module_url`, `web_module_url`, creation timestamp). Keep this committed so collaborators share the same target project. |
-| `gcai.config` | Runtime configuration consumed by `scripts/semoss_asset_sync.py`. At minimum it must contain `PROJECT_ID` and the fully qualified `BASE_URL` (e.g., `<base_url><api_module_url>`). |
 
 ## Workflow
 
 1. **Refresh credentials (when needed)**
-   - Edit `.vscode/mcp.json` and replace the bearer token entries for all three servers (`Semoss_Platform_Instructions`, `Semoss_project_manager`, `Semoss_database_helper`).
+   - Run the local config helper to update `.vscode/mcp.json` and `semoss_config/config.json` in one pass:
+     `py -3.13 scripts/semoss_asset_sync.py configure-local --access-key <access_key> --secret-key <secret_key> --base-url <base_url> --api-module-url <api_module_url> --web-module-url <web_module_url> --project-id <project_id>`
+   - Add `--is-mcp` for MCP-enabled apps or `--is-not-mcp` for non-MCP apps. Use `--module <value>` only when you need a module other than `app`.
    - Reopen VS Code or run `Developer: Reload Window` so MCP picks up the change.
 
 2. **Ensure local config matches the remote project**
-   - Confirm `semoss_config/config.json` has the correct `project_id` and URLs.
-   - Mirror those values in `gcai.config` (especially `PROJECT_ID`).
+   - Confirm the helper wrote the correct `project_id` and URLs.
+   - Re-run the helper whenever those values change instead of editing the files by hand.
 
 3. **Upload assets to SEMOSS**
    - Run the sync script with the Python launcher to guarantee the 3.13 interpreter:  
