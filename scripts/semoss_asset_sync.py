@@ -337,6 +337,10 @@ def should_generate_python_mcp(semoss_config: dict[str, object]) -> bool:
     return is_mcp_project(semoss_config) and MCP_DRIVER_PATH.exists()
 
 
+def should_suggest_python_mcp(semoss_config: dict[str, object]) -> bool:
+    return should_generate_python_mcp(semoss_config)
+
+
 def normalize_remote_asset_path(remote_path: str) -> str:
     cleaned = remote_path.strip().replace("\\", "/").strip("/")
     if not cleaned:
@@ -590,6 +594,24 @@ def sync_remote_folder_to_local(
     }
 
 
+def generate_python_mcp_manifest(semoss_config: dict[str, object], project_id: str, server_connection) -> int:
+    if not is_mcp_project(semoss_config):
+        raise SystemExit("This project is not marked as MCP-enabled in semoss_config/config.json.")
+    if not MCP_DRIVER_PATH.exists():
+        raise SystemExit(f"Python MCP driver not found: {MCP_DRIVER_PATH}")
+
+    python_mcp_result = make_python_mcp(server_connection, project_id)
+    publish_result = publish_project(server_connection, project_id)
+    mcp_listing = browse_remote_directory(server_connection, project_id, "version/assets/mcp")
+
+    print("Generated SEMOSS Python MCP manifest")
+    print(json.dumps(python_mcp_result, indent=2, default=str))
+    print("Published project after MakePythonMCP")
+    print(json.dumps(publish_result, indent=2, default=str))
+    print_directory_state("Remote MCP directory after generation:", mcp_listing)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Upload local assets to SEMOSS or sync remote assets to local.")
     subparsers = parser.add_subparsers(dest="command")
@@ -612,6 +634,11 @@ def build_parser() -> argparse.ArgumentParser:
     upload_parser = subparsers.add_parser("upload", help="Upload a local file into the linked SEMOSS project.")
     upload_parser.add_argument("file", help="Path to the local file to upload.")
 
+    subparsers.add_parser(
+        "make-python-mcp",
+        help="Generate py_mcp.json from py/mcp_driver.py and publish the project.",
+    )
+
     sync_parser = subparsers.add_parser("sync-from-remote", help="Download a remote SEMOSS asset folder into the local workspace.")
     sync_parser.add_argument("remote_folder", help="Remote folder path, relative to version/assets or as a full version/assets path.")
     sync_parser.add_argument(
@@ -630,7 +657,7 @@ def build_parser() -> argparse.ArgumentParser:
 def parse_args() -> argparse.Namespace:
     parser = build_parser()
     raw_args = sys.argv[1:]
-    if raw_args and raw_args[0] not in {"configure-local", "upload", "sync-from-remote", "-h", "--help"}:
+    if raw_args and raw_args[0] not in {"configure-local", "upload", "sync-from-remote", "make-python-mcp", "-h", "--help"}:
         raw_args = ["upload", *raw_args]
     if not raw_args:
         parser.print_help()
@@ -701,12 +728,6 @@ def upload_local_file_to_semoss(
         path=remote_directory,
     )
 
-    python_mcp_result = None
-    mcp_listing: list[dict[str, object]] = []
-    if should_generate_python_mcp(semoss_config):
-        python_mcp_result = make_python_mcp(server_connection, project_id)
-        mcp_listing = browse_remote_directory(server_connection, project_id, "version/assets/mcp")
-
     publish_result = publish_project(server_connection, project_id)
     final_listing = browse_remote_directory(server_connection, project_id, remote_directory)
 
@@ -716,13 +737,15 @@ def upload_local_file_to_semoss(
     print(f"Remote directory: {remote_directory}")
     print(f"Remote asset: {remote_file_path}")
     print(json.dumps(upload_result, indent=2, default=str))
-    if python_mcp_result is not None:
-        print("Generated SEMOSS Python MCP manifest")
-        print(json.dumps(python_mcp_result, indent=2, default=str))
-        print_directory_state("Remote MCP directory after generation:", mcp_listing)
     print("Published project after upload")
     print(json.dumps(publish_result, indent=2, default=str))
     print_directory_state("Remote directory after upload:", final_listing)
+    if should_suggest_python_mcp(semoss_config):
+        print("Python MCP manifest was not generated automatically.")
+        print(
+            "Run 'py -3.13 scripts/semoss_asset_sync.py make-python-mcp' if you want SEMOSS to generate py_mcp.json, "
+            "or create/update mcp/mcp.json manually."
+        )
     return 0
 
 
@@ -766,6 +789,9 @@ def main() -> int:
         return sync_semoss_folder_to_local(args.remote_folder, args.local_dir, args.overwrite)
 
     semoss_config, project_id, server_connection = build_semoss_context()
+    if args.command == "make-python-mcp":
+        return generate_python_mcp_manifest(semoss_config, project_id, server_connection)
+
     local_file = Path(args.file).expanduser().resolve()
     return upload_local_file_to_semoss(local_file, project_id, server_connection, semoss_config)
 

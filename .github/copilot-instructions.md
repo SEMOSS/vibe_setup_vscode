@@ -41,7 +41,7 @@ server_connection.run_pixel('1+1')
 
 Before upload, check whether the remote file already exists. If it does, ask the user before deleting it. After delete and after upload, publish the project. Then list files so the result is visible.
 
-If databases are involved, never create the database through MCP. Always direct the user to create the database in the UI first so they stay in control of the setup decisions, review the inputs, and confirm the final configuration. After that, ask for the database id, get the schema, decode the base64 payload, and store the schema in `semoss_config`. Use Python for base64 conversion when needed.
+If databases are involved, never create the database through MCP. Be flexible in how you help the user: either offer the database app link so they can create it in the UI themselves, or ask whether they want you to prepare SQL scripts for schema creation and sample data insertion that they can review and execute. Do not execute database creation yourself through MCP. If the user chooses the SQL-script route, generate the scripts, explain what they do, and let the user remain in control of running them. After the database exists, ask for the database id, get the schema, decode the base64 payload, and store the schema in `semoss_config`. Use Python for base64 conversion when needed.
 
 UI guidance:
 - Unless the user says otherwise, build the UI as a single page HTML app.
@@ -54,18 +54,22 @@ UI guidance:
 MCP-specific behavior:
 - The MCP python driver lives at `py/mcp_driver.py` locally and becomes `version/assets/py/mcp_driver.py` remotely.
 - Use the SEMOSS MCP conventions and annotations for functions exposed from `mcp_driver.py`.
-- - There are two MCP execution modes controlled by `SMSS_MCP_Execution`: `auto` and `ask`.
+- Always add an `echo` MCP function in `py/mcp_driver.py` for MCP-enabled apps unless it already exists. Use it as the standard way to return assimilated context back to Playground.
+- There are two MCP execution modes controlled by `SMSS_MCP_Execution`: `auto` and `ask`.
 - When creating or updating MCP functions, ask the user for the execution mode of each function unless it can be inferred from an existing MCP config.
 - If `mcp/mcp.json` exists in the local project assets, or `/version/assets/mcp/mcp.json` exists remotely, inspect it and use it to infer existing `SMSS_MCP_Execution` values before asking follow-up questions.
 - If even one MCP function is `ask`, follow the human-in-the-loop Playground pattern for the relevant flow instead of treating the app as pure auto-execution MCP.
 - For `ask` functions, mark the metadata with `SMSS_MCP_Execution: ask` and assume the behavior is specific to the Playground MCP client.
 - Treat `ask` as the general UI-involved execution pattern. If a flow requires rendering UI, collecting human input, showing tools in the UI, or waiting for a user-driven completion step, it should follow the `ask` pattern.
-- In `ask` mode, the Playground client will render and invoke the UI with tools, then the tool logic may continue through direct Python execution or by assimilating user-entered input from the UI.
-- For UI-backed `ask` flows, design the UI around the same lifecycle each time: Playground opens the UI with the relevant tools, the user reviews or enters data, the tool continues through direct Python execution or UI-assisted data collection, and the frontend signals completion back to Playground.
-- When an `ask` flow is complete, notify Playground of completion by calling `runMCP()` on the frontend with a simple echo-style function that returns the provided payload. The important part is that completion is signaled through `runMCP()`, not just by returning from local UI code.
-- If there is any `ask` function, wire the required UI and completion handling into `portals/index.html` and keep the MCP function implementation aligned with that UI flow.
+- When JavaScript can see MCP tools, treat that as the signal that the app is running inside Playground.
+- In Playground, the handoff action such as `Return to Playground` or `Add Context` is automatically added when MCP tools are present. Do not treat that as an optional manual pattern.
+- In Playground-aware flows, fill tool parameters, let the user interact with the page, and keep the evolving response data in a frontend context variable rather than trying to finish the entire flow immediately.
+- When a Python MCP function returns data, store that returned payload in an assimilated context variable so it can be sent back to Playground later.
+- For UI-backed `ask` flows, design the lifecycle the same way each time: Playground opens the UI with tools, the user interacts with the page, Python functions can enrich the context, and the frontend returns the final assimilated context through `runMCP()`.
+- When the user triggers the automatically available Playground handoff action, send the assimilated context back through `runMCP()` using the `echo` MCP function. The important part is that the return to Playground happens through `runMCP()` plus `echo`, not through local UI state alone.
+- If there is any `ask` function, wire the required UI context handling into `portals/index.html` and keep the MCP function implementation aligned with that Playground return flow.
 - If the user says `mcp` or asks to configure MCP behavior, treat that as a cue to review or set the per-function execution mode and the related `SMSS_MCP_Execution` metadata.
-- When syncing an MCP project and `py/mcp_driver.py` exists, also run the `MakePythonMCP` reactor with the project id so SEMOSS generates `py_mcp.json`.
+- When syncing an MCP project and `py/mcp_driver.py` exists, do not run the `MakePythonMCP` reactor automatically. Ask the user whether they want you to run `py -3.13 scripts/semoss_asset_sync.py make-python-mcp` so SEMOSS generates `py_mcp.json`, or whether they want to create or maintain `mcp/mcp.json` themselves.
 - Keep this logic inside `scripts/semoss_asset_sync.py` so the template stays reusable.
 
 Every time you make modifications, offer to synchronize local changes to SEMOSS and offer the app URL:

@@ -42,8 +42,13 @@ This workspace contains the local assets for a SEMOSS project (project ID stored
      2. Back up the remote asset locally under `temp/semoss_backups/`.
      3. Upload the new file via the SEMOSS SDK.
      4. Publish the project so the change is visible.
+       5. If the project is MCP-enabled and `py/mcp_driver.py` exists, remind you that `MakePythonMCP` is optional rather than running it automatically.
    - Example (already used for the config file):  
      `py -3.13 scripts/semoss_asset_sync.py upload semoss_config/config.json`
+
+    - To explicitly ask SEMOSS to generate `py_mcp.json`, run:
+       `py -3.13 scripts/semoss_asset_sync.py make-python-mcp`
+    - If you do not want to run the reactor, you can create or maintain `mcp/mcp.json` yourself.
 
 4. **Download from SEMOSS (optional)**
    - Use the `sync-from-remote` command to pull portal assets to your workspace:  
