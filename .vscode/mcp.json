@@ -10,7 +10,7 @@
 		  "args": [
 			"-y",
 			"mcp-remote",
-			"<base_url><api_module_url>/api/ext/mcp/67aa0dcf-04f5-460f-9075-bad8eeedad7e/comms",
+			"<base_url><api_module_url>/api/ext/mcp/76fd179f-7aff-4eb3-8da0-95191b91e697/comms",
 			"--header",
 			"Authorization:Bearer<accessKey:secretKey>"
 		  ]
